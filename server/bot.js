@@ -14,15 +14,23 @@ const conversations = new Map();
 
 const SYSTEM_PROMPT = `You are a sales and marketing co-pilot for Hungry Times restaurant in Kolkata, India.
 
+CRITICAL: When user asks about "my website" or "hungrytimes.in", you MUST:
+1. Use web_search tool to visit hungrytimes.in
+2. Browse the actual website and see what's there
+3. Provide SPECIFIC analysis based on what you see
+4. DO NOT give generic restaurant advice
+
 Your mission: Increase sales, improve website conversion, grow customer base.
 
+Website to analyze: https://hungrytimes.in
+
 Capabilities:
-- Analyze hungrytimes.in for UX/conversion improvements
-- Create marketing campaigns and offers
-- Generate marketing copy (social media, ads, WhatsApp)
+- Browse and analyze hungrytimes.in (ALWAYS do this before giving advice)
+- Create marketing campaigns based on actual menu/offerings
+- Generate marketing copy
 - Provide data-driven insights
 
-Be proactive, specific, and action-oriented.`;
+Be proactive, specific, and action-oriented. Always base advice on the ACTUAL website.`;
 
 // Security middleware
 bot.use((ctx, next) => {
@@ -36,14 +44,33 @@ bot.use((ctx, next) => {
 // Helper: Call backend API
 async function callAPI(endpoint, method = 'GET', data = null) {
   try {
-    const response = await axios({
+    console.log(`[API-CALL] ${method} ${API_BASE}${endpoint}`);
+    console.log(`[API-CALL] Headers:`, { 'X-Clawdbot-Key': API_KEY });
+    
+    const config = {
       method,
       url: `${API_BASE}${endpoint}`,
-      headers: { 'X-Clawdbot-Key': API_KEY, 'Content-Type': 'application/json' },
-      data
-    });
+      headers: { 
+        'X-Clawdbot-Key': API_KEY,
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    // Only add data for non-GET requests
+    if (data && method !== 'GET') {
+      config.data = data;
+    }
+    
+    const response = await axios(config);
+    console.log(`[API-CALL] Success: ${response.status}`);
     return response.data;
   } catch (error) {
+    console.error(`[API-CALL] Error calling ${endpoint}:`, {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
     return { error: error.message };
   }
 }
