@@ -1,0 +1,19 @@
+{
+  "name": "hungry-times-bot",
+  "version": "1.0.0",
+  "description": "Sales and marketing bot for Hungry Times",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "telegraf": "^4.16.3",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
