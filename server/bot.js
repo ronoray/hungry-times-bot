@@ -109,6 +109,7 @@ bot.start((ctx) => {
     `/test - System check\n` +
     `/analytics - Last 7 days data\n` +
     `/kpi - Weekly KPI dashboard\n` +
+    `/orders - Pending online orders\n` +
     `/reset - Clear chat\n\n` +
     `*CRM:*\n` +
     `/segments - Customer segment counts\n` +
@@ -296,6 +297,72 @@ bot.command('next', async (ctx) => {
     });
   } catch (err) {
     ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.command('orders', async (ctx) => {
+  try {
+    const data = await callAPI('/api/marketing/pending-orders');
+    if (data.error) return ctx.reply(`⚠️ ${data.error}`);
+
+    const orders = data.orders || [];
+    if (orders.length === 0) {
+      return ctx.reply('✅ No pending online orders right now.');
+    }
+
+    for (const o of orders) {
+      let items = '—';
+      try {
+        const parsed = JSON.parse(o.items_json || '[]');
+        items = parsed.map(i => `${i.itemName} x${i.quantity}`).join(', ');
+      } catch {}
+
+      const text =
+        `🛒 *Order #${o.id}* — ${o.hours_old}h old\n` +
+        `👤 ${o.customer_name} · ${o.phone}\n` +
+        `💰 ₹${o.total} · ${o.payment_mode} · Pay: ${o.payment_status} · Status: ${o.status}\n` +
+        `📦 ${items}`;
+
+      await ctx.reply(text, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '❌ Abandoned payment', callback_data: `cancel_${o.id}_abandoned` },
+            { text: '🚫 Out of capacity', callback_data: `cancel_${o.id}_capacity` },
+          ], [
+            { text: '📋 Wrong / duplicate', callback_data: `cancel_${o.id}_duplicate` },
+          ]]
+        }
+      });
+    }
+  } catch (err) {
+    ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.action(/^cancel_(\d+)_(\w+)$/, async (ctx) => {
+  const orderId = ctx.match[1];
+  const reasonKey = ctx.match[2];
+
+  const reasons = {
+    abandoned: 'Payment not completed — abandoned by customer',
+    capacity: 'Unable to fulfil — out of capacity',
+    duplicate: 'Wrong or duplicate order',
+  };
+  const reason = reasons[reasonKey] || reasonKey;
+
+  try {
+    const data = await callAPI(`/api/marketing/cancel-order/${orderId}`, 'POST', { reason });
+    if (data.error) {
+      await ctx.answerCbQuery(`Error: ${data.error}`);
+      return;
+    }
+    await ctx.answerCbQuery('Cancelled ✅');
+    await ctx.editMessageReplyMarkup({
+      inline_keyboard: [[{ text: `❌ Cancelled — ${reason}`, callback_data: 'done' }]]
+    });
+  } catch (err) {
+    ctx.answerCbQuery(`Error: ${err.message}`);
   }
 });
 
