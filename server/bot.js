@@ -45,7 +45,7 @@ bot.use((ctx, next) => {
 async function callAPI(endpoint, method = 'GET', data = null) {
   try {
     console.log(`[API-CALL] ${method} ${API_BASE}${endpoint}`);
-    console.log(`[API-CALL] Headers:`, { 'X-Clawdbot-Key': API_KEY });
+    console.log(`[API-CALL] Headers:`, { 'X-Clawdbot-Key': API_KEY ? '***' : '(not set)' });
     
     const config = {
       method,
