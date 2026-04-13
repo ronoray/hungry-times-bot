@@ -1,0 +1,22 @@
+services:
+  sales-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sales-bot
+    restart: unless-stopped
+    env_file:
+      - server/.env
+    environment:
+      - ANTHROPIC_BASE_URL=http://cui-api:8080
+    networks:
+      - edge
+      - claude-proxy
+
+networks:
+  edge:
+    name: edge
+    external: true
+  claude-proxy:
+    name: claude-proxy
+    external: true

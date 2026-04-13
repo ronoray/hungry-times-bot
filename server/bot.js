@@ -3,7 +3,11 @@ const { Telegraf } = require('telegraf');
 const Anthropic = require('@anthropic-ai/sdk');
 const axios = require('axios');
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: process.env.ANTHROPIC_BASE_URL,
+  defaultHeaders: { 'x-caller-id': 'sales-bot', 'x-feature-name': 'telegram_bot' },
+});
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 const ALLOWED_USERS = process.env.TELEGRAM_ALLOWED_USERS.split(',').map(id => parseInt(id));
