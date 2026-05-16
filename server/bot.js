@@ -89,7 +89,7 @@ async function callClaude(userId, message) {
   
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: SYSTEM_PROMPT,
       messages: history
@@ -120,6 +120,9 @@ bot.start((ctx) => {
     `/campaign <segment> - Generate offers\n` +
     `/next - Send next CRM message\n` +
     `/crm - Dashboard stats\n\n` +
+    `*Crons:*\n` +
+    `/crons - List all scheduled jobs\n` +
+    `/cron run <id> - Trigger any cron now\n\n` +
     `Try: "Analyze my website" or "Create weekend promo"`,
     { parse_mode: 'Markdown' }
   );
@@ -367,6 +370,39 @@ bot.action(/^cancel_(\d+)_(\w+)$/, async (ctx) => {
     });
   } catch (err) {
     ctx.answerCbQuery(`Error: ${err.message}`);
+  }
+});
+
+bot.command('crons', async (ctx) => {
+  try {
+    const data = await callAPI('/api/marketing/crons');
+    if (data.error) return ctx.reply(`⚠️ ${data.error}`);
+
+    const rows = (data.crons || []).map(c =>
+      `/${c.id.replace(/-/g, '_')} → \`${c.id}\`\n  ${c.when} — ${c.desc}`
+    ).join('\n\n');
+
+    ctx.reply(
+      `⚙️ *Scheduled Jobs (${data.crons.length})*\n\n${rows}\n\n` +
+      `Run any: /cron run <id>`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (err) {
+    ctx.reply(`⚠️ ${err.message}`);
+  }
+});
+
+bot.hears(/^\/cron run (.+)$/i, async (ctx) => {
+  const id = ctx.match[1].trim().toLowerCase();
+  const statusMsg = await ctx.reply(`⏳ Running \`${id}\`…`, { parse_mode: 'Markdown' });
+  try {
+    const data = await callAPI(`/api/marketing/crons/${id}/run`, 'POST');
+    if (data.error) throw new Error(data.error);
+    ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null,
+      `✅ \`${id}\` completed`, { parse_mode: 'Markdown' });
+  } catch (err) {
+    ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null,
+      `❌ \`${id}\` failed: ${err.message}`, { parse_mode: 'Markdown' });
   }
 });
 
