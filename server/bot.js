@@ -379,13 +379,13 @@ bot.command('crons', async (ctx) => {
     if (data.error) return ctx.reply(`⚠️ ${data.error}`);
 
     const rows = (data.crons || []).map(c =>
-      `/${c.id.replace(/-/g, '_')} → \`${c.id}\`\n  ${c.when} — ${c.desc}`
+      `<b>${c.id}</b>  ${c.when}\n${c.desc}`
     ).join('\n\n');
 
     ctx.reply(
-      `⚙️ *Scheduled Jobs (${data.crons.length})*\n\n${rows}\n\n` +
-      `Run any: /cron run <id>`,
-      { parse_mode: 'Markdown' }
+      `<b>⚙️ Scheduled Jobs (${data.crons.length})</b>\n\n${rows}\n\n` +
+      `Trigger: <code>/cron run &lt;id&gt;</code>`,
+      { parse_mode: 'HTML' }
     );
   } catch (err) {
     ctx.reply(`⚠️ ${err.message}`);
@@ -394,15 +394,15 @@ bot.command('crons', async (ctx) => {
 
 bot.hears(/^\/cron run (.+)$/i, async (ctx) => {
   const id = ctx.match[1].trim().toLowerCase();
-  const statusMsg = await ctx.reply(`⏳ Running \`${id}\`…`, { parse_mode: 'Markdown' });
+  const statusMsg = await ctx.reply(`⏳ Running <code>${id}</code>…`, { parse_mode: 'HTML' });
   try {
     const data = await callAPI(`/api/marketing/crons/${id}/run`, 'POST');
     if (data.error) throw new Error(data.error);
     ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null,
-      `✅ \`${id}\` completed`, { parse_mode: 'Markdown' });
+      `✅ <code>${id}</code> completed`, { parse_mode: 'HTML' });
   } catch (err) {
     ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, null,
-      `❌ \`${id}\` failed: ${err.message}`, { parse_mode: 'Markdown' });
+      `❌ <code>${id}</code> failed: ${err.message}`, { parse_mode: 'HTML' });
   }
 });
 
